@@ -1,16 +1,24 @@
-import pkg_resources
-from subprocess import call
+import sys
+from subprocess import call,run
+import subprocess
+def check(name):
+    latest_version = str(subprocess.run([sys.executable, '-m', 'pip', 'install', '{}==random'.format(name)], capture_output=True, text=True))
+    latest_version = latest_version[latest_version.find('(from versions:')+15:]
+    latest_version = latest_version[:latest_version.find(')')]
+    latest_version = latest_version.replace(' ','').split(',')[-1]
+    return latest_version
 
-packages = [dist.project_name for dist in pkg_resources.working_set]
-
-for wrds in packages:
-    print("New package being processed here ############################################ : ", wrds)
-    print(wrds)
+all_pkgs = subprocess.run(["pip", "freeze", "/dev/null"], capture_output=True).stdout.splitlines()
+for pkg in all_pkgs:
+    pk_name = str(pkg).replace('b\'','').replace('\'','').split("==")
+    ver = check(pk_name[0])
     try:
-        call("pip install --upgrade " + ' ' + wrds, shell=True)
+        if ver != pk_name[1]:
+            try:
+                print(f"{pk_name[0]} needs to be updated as installed is {ver} and latest version is {pk_name[1]}")
+                call("pip install --upgrade " + ' ' + pk_name[0], shell=True)
+            except Exception as e:
+                print("ERROR: While installing the upgraded package got and error as ::" + str(e))
     except Exception as e:
-        print("THIS IS THE ERROR HERE --------------------------------------------->" + str(e))
-'''
-call("pip install --upgrade " + ' '.join(packages), shell=True)
-'''
-print("Done")
+        print(f"ERROR: {str(e)}")
+print("INFO: All packages updated")
