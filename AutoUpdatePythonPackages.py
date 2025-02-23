@@ -1,24 +1,20 @@
-import sys
-from subprocess import call,run
 import subprocess
-def check(name):
-    latest_version = str(subprocess.run([sys.executable, '-m', 'pip', 'install', '{}==random'.format(name)], capture_output=True, text=True))
-    latest_version = latest_version[latest_version.find('(from versions:')+15:]
-    latest_version = latest_version[:latest_version.find(')')]
-    latest_version = latest_version.replace(' ','').split(',')[-1]
-    return latest_version
+import sys
 
-all_pkgs = subprocess.run(["pip", "freeze", "/dev/null"], capture_output=True).stdout.splitlines()
-for pkg in all_pkgs:
-    pk_name = str(pkg).replace('b\'','').replace('\'','').split("==")
-    ver = check(pk_name[0])
-    try:
-        if ver != pk_name[1]:
-            try:
-                print(f"{pk_name[0]} needs to be updated as installed is {ver} and latest version is {pk_name[1]}")
-                call("pip install --upgrade " + ' ' + pk_name[0], shell=True)
-            except Exception as e:
-                print("ERROR: While installing the upgraded package got and error as ::" + str(e))
-    except Exception as e:
-        print(f"ERROR: {str(e)}")
-print("INFO: All packages updated")
+def get_outdated_packages():
+    result = subprocess.check_output([sys.executable, '-m', 'pip', 'list', '--outdated'])
+    lines = result.decode().split('\n')[2:]  # Skip the header lines
+    outdated_packages = [line.split()[0] for line in lines if line ]
+    return outdated_packages
+
+def update_packages(packages):
+    for package in packages:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package])
+
+if __name__ == "__main__":
+    outdated_packages = get_outdated_packages()
+    if outdated_packages:
+        update_packages(outdated_packages)
+        print("Updated the following packages:", outdated_packages)
+    else:
+        print("All packages are up-to-date.")
